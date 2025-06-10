@@ -7,9 +7,11 @@ Near_GrimFocusProc = {
 		offsetY = 700,
 		width = 50,
 		height = 50,
+		duration = 1000,
 		['122585'] = true,
 		['122587'] = true,
 		['122586'] = true,
+		stacks = 9,
 	},
 }
 
@@ -29,11 +31,13 @@ local buffIds = {
 }
 
 local function OnProc(_, changeType, _, _, _, _, _, stackCount)
-	if changeType == EFFECT_RESULT_UPDATED and (stackCount == 5 or stackCount == 10) then
+	local sv = Near_GrimFocusProc.ASV
+
+	if changeType == EFFECT_RESULT_UPDATED and stackCount == sv.stacks then
 		if IsUnitInCombat('player') then
 			NGFP_GUI:SetHidden(false)
 
-			EVENT_MANAGER:RegisterForUpdate(addon.name, 1000,
+			EVENT_MANAGER:RegisterForUpdate(addon.name, sv.duration,
 				function()
 					NGFP_GUI:SetHidden(true)
 					EVENT_MANAGER:UnregisterForUpdate(addon.name)
@@ -119,6 +123,38 @@ local function SetupSettings()
 			end,
 		}
 	end
+
+	optionsTable[#optionsTable + 1] = {
+		type = 'divider',
+	}
+
+	optionsTable[#optionsTable + 1] = {
+		type = 'slider',
+		name = 'Alert at x stacks',
+		tooltip = 'Adjust the amount of stacks needed to get the alert',
+		min = 0,
+		max = 10,
+		step = 1,
+		default = addon.defaults.stacks,
+		getFunc = function() return sv.stacks end,
+		setFunc = function(v)
+			sv.stacks = v
+		end,
+	}
+
+	optionsTable[#optionsTable + 1] = {
+		type = 'slider',
+		name = 'Duration (ms)',
+		tooltip = 'Adjust duration of the icon on screen',
+		min = 1000,
+		max = 5000,
+		step = 100,
+		default = addon.defaults.duration,
+		getFunc = function() return sv.duration end,
+		setFunc = function(v)
+			sv.duration = v
+		end,
+	}
 
 	optionsTable[#optionsTable + 1] = {
 		type = 'divider',
