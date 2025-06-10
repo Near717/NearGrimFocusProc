@@ -1,0 +1,17 @@
+<GuiXml>
+	<Controls>
+		<TopLevelControl name = "NGFP_GUI" clampedToScreen="true" mouseEnabled="true" movable="true" hidden="true">
+			<Dimensions x="50" y="50" />
+			<Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT" offsetX="800" offsetY="700"/>
+			<OnMoveStop>
+				  Near_GrimFocusProc.OnMoveStop()
+			</OnMoveStop>
+
+			<Controls>
+				<Texture name="$(parent)_Icon" textureFile="/esoui/art/icons/ability_nightblade_005.dds">
+					<AnchorFill/>
+				</Texture>
+			</Controls>
+		</TopLevelControl>
+	</Controls>
+</GuiXml>
