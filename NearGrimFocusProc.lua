@@ -7,6 +7,9 @@ Near_GrimFocusProc = {
 		offsetY = 700,
 		width = 50,
 		height = 50,
+		['122585'] = true,
+		['122587'] = true,
+		['122586'] = true,
 	},
 }
 
@@ -48,6 +51,19 @@ local function OnPlayerCombatState(_, inCombat)
 	end
 end
 
+local function RegisterProcs()
+	local sv = Near_GrimFocusProc.ASV
+	for _, id in ipairs(buffIds) do
+		if sv[tostring(id)] then
+			EVENT_MANAGER:RegisterForEvent(addon.name .. id, EVENT_EFFECT_CHANGED, OnProc)
+			EVENT_MANAGER:AddFilterForEvent(addon.name .. id, EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, id)
+			EVENT_MANAGER:AddFilterForEvent(addon.name .. id, EVENT_EFFECT_CHANGED, REGISTER_FILTER_UNIT_TAG, 'player')
+		else
+			EVENT_MANAGER:UnregisterForEvent(addon.name .. id, EVENT_EFFECT_CHANGED)
+		end
+	end
+end
+
 local function SetDimensions(width, height)
 	NGFP_GUI:SetDimensions(width, height)
 end
@@ -71,6 +87,7 @@ end
 local function SetupSettings()
 	local LAM2 = LibAddonMenu2
 	local sv = Near_GrimFocusProc.ASV
+	local updateEvents = false
 
 	local panelData = {
 		type = 'panel',
@@ -80,9 +97,32 @@ local function SetupSettings()
 		registerForRefresh = true,
 		registerForDefaults = true,
 	}
-	LAM2:RegisterAddonPanel(addon.name, panelData)
+	local LAM2SettingsPanel = LAM2:RegisterAddonPanel(addon.name, panelData)
+
+	local function OnLamPanelClosed(panel)
+		if panel ~= LAM2SettingsPanel or not updateEvents then return end
+		updateEvents = false
+		RegisterProcs()
+	end
 
 	local optionsTable = {}
+
+	for _, id in ipairs(buffIds) do
+		optionsTable[#optionsTable + 1] = {
+			type = 'checkbox',
+			name = 'Show procs for ' .. GetAbilityName(id),
+			default = addon.defaults[tostring(id)],
+			getFunc = function() return sv[tostring(id)] end,
+			setFunc = function(v)
+				sv[tostring(id)] = v
+				updateEvents = true
+			end,
+		}
+	end
+
+	optionsTable[#optionsTable + 1] = {
+		type = 'divider',
+	}
 
 	local show = false
 	optionsTable[#optionsTable + 1] = {
@@ -128,18 +168,8 @@ local function SetupSettings()
 	}
 
 	LAM2:RegisterOptionControls(addon.name, optionsTable)
-end
 
-local function Init()
-	EVENT_MANAGER:RegisterForEvent(addon.name, EVENT_PLAYER_COMBAT_STATE, OnPlayerCombatState)
-
-	for _, id in pairs(buffIds) do
-		EVENT_MANAGER:RegisterForEvent(addon.name .. id, EVENT_EFFECT_CHANGED, OnProc)
-		EVENT_MANAGER:AddFilterForEvent(addon.name .. id, EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, id)
-		EVENT_MANAGER:AddFilterForEvent(addon.name .. id, EVENT_EFFECT_CHANGED, REGISTER_FILTER_UNIT_TAG, 'player')
-	end
-
-	RestoreSettings()
+	CALLBACK_MANAGER:RegisterCallback("LAM-PanelClosed", OnLamPanelClosed)
 end
 
 local function OnAddOnLoaded(_, addonName)
@@ -149,7 +179,10 @@ local function OnAddOnLoaded(_, addonName)
 	addon.ASV = ZO_SavedVars:NewAccountWide(addon.name .. '_Data', 1, GetWorldName(), addon.defaults)
 
 	SetupSettings()
-	Init()
+	RestoreSettings()
+
+	EVENT_MANAGER:RegisterForEvent(addon.name, EVENT_PLAYER_COMBAT_STATE, OnPlayerCombatState)
+	RegisterProcs()
 end
 
 EVENT_MANAGER:RegisterForEvent(addon.name, EVENT_ADD_ON_LOADED, OnAddOnLoaded)
